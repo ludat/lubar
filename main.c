@@ -1,19 +1,3 @@
-/* The authors of this work have released all rights to it and placed it
-in the public domain under the Creative Commons CC0 1.0 waiver
-(http://creativecommons.org/publicdomain/zero/1.0/).
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Retrieved from: http://en.literateprograms.org/Hello_World_(C,_Cairo)?oldid=10388
-*/
-
-
 #include<cairo.h>
 #include<cairo-pdf.h>
 #include<cairo-ps.h>
@@ -27,6 +11,46 @@ Retrieved from: http://en.literateprograms.org/Hello_World_(C,_Cairo)?oldid=1038
 #define SIZEX 500
 #define SIZEY 500
 
+struct XGlobals {
+	Display *dpy;
+	Window rootwin;
+	Window win;
+	int scr;
+	XSetWindowAttributes wa;
+} XG;
+
+void init_X(){
+	if(!(XG.dpy=XOpenDisplay(NULL))) {
+		fprintf(stderr, "ERROR: Could not open display\n");
+		exit(1);
+	}
+
+	XG.scr=DefaultScreen(XG.dpy);
+	XG.rootwin=RootWindow(XG.dpy, XG.scr);
+
+
+	XG.wa.override_redirect = 0;
+	XG.wa.background_pixmap = ParentRelative;
+	XG.wa.event_mask = ExposureMask | ButtonReleaseMask | ButtonPressMask | ButtonMotionMask | EnterWindowMask | LeaveWindowMask | KeyPressMask;
+
+	XG.win = XCreateWindow(
+			XG.dpy, //Display
+			XG.rootwin, //Parent
+			10, //X position
+			10, //Y position
+			500, //width
+			50, //height
+			0, //border width
+			DefaultDepth(XG.dpy, XG.scr), //depth
+			CopyFromParent, //class
+			DefaultVisual(XG.dpy, XG.scr), //visual
+			CWOverrideRedirect | CWBackPixmap | CWEventMask, //value mask
+			&(XG.wa) //atributes
+		);
+
+	XStoreName(XG.dpy, XG.win, "hello");
+	XMapWindow(XG.dpy, XG.win);
+}
 
 void paint(cairo_surface_t *cs)
 {
@@ -58,38 +82,52 @@ void paint(cairo_surface_t *cs)
 
 int main(int argc, char *argv[])
 {
-	Display *dpy;
-	Window rootwin;
-	Window win;
 	XEvent e;
-	int scr;
 	cairo_surface_t *cs;
 
-	if(!(dpy=XOpenDisplay(NULL))) {
+	init_X();
+
+	if(!(XG.dpy=XOpenDisplay(NULL))) {
 		fprintf(stderr, "ERROR: Could not open display\n");
 		exit(1);
 	}
 
-	scr=DefaultScreen(dpy);
-	rootwin=RootWindow(dpy, scr);
+	XG.scr=DefaultScreen(XG.dpy);
+	XG.rootwin=RootWindow(XG.dpy, XG.scr);
 
-	win=XCreateSimpleWindow(dpy, rootwin, 1, 1, SIZEX, SIZEY, 0, 
-			BlackPixel(dpy, scr), BlackPixel(dpy, scr));
 
-	XStoreName(dpy, win, "hello");
-	XSelectInput(dpy, win, ExposureMask|ButtonPressMask);
-	XMapWindow(dpy, win);
+	XG.wa.override_redirect = 0;
+	XG.wa.background_pixmap = ParentRelative;
+	XG.wa.event_mask = ExposureMask | ButtonReleaseMask | ButtonPressMask | ButtonMotionMask | EnterWindowMask | LeaveWindowMask | KeyPressMask;
 
-	cs=cairo_xlib_surface_create(dpy, win, DefaultVisual(dpy, 0), SIZEX, SIZEY);
+	XG.win = XCreateWindow(
+			XG.dpy, //Display
+			XG.rootwin, //Parent
+			10, //X position
+			10, //Y position
+			500, //width
+			50, //height
+			0, //border width
+			DefaultDepth(XG.dpy, XG.scr), //depth
+			CopyFromParent, //class
+			DefaultVisual(XG.dpy, XG.scr), //visual
+			CWOverrideRedirect | CWBackPixmap | CWEventMask, //value mask
+			&(XG.wa) //atributes
+		);
+
+	XStoreName(XG.dpy, XG.win, "hello");
+	XMapWindow(XG.dpy, XG.win);
+
+	cs=cairo_xlib_surface_create(XG.dpy, XG.win, DefaultVisual(XG.dpy, 0), SIZEX, SIZEY);
 
 	while(1) {
-		XNextEvent(dpy, &e);
+		XNextEvent(XG.dpy, &e);
 		if(e.type==Expose && e.xexpose.count<1) {
 			paint(cs);
 		} else if(e.type==ButtonPress) break;
 	}
 
 	cairo_surface_destroy(cs);
-	XCloseDisplay(dpy);
+	XCloseDisplay(XG.dpy);
     return 0;
 }
