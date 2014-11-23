@@ -52,8 +52,7 @@ void init_X(){
 	XMapWindow(XG.dpy, XG.win);
 }
 
-void paint(cairo_surface_t *cs)
-{
+void paint(cairo_surface_t *cs) {
 	cairo_t *c;
 	cairo_surface_t *image;
 
@@ -80,8 +79,7 @@ void paint(cairo_surface_t *cs)
 	cairo_destroy(c);
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	XEvent e;
 	cairo_surface_t *cs;
 
