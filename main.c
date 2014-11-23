@@ -1,8 +1,7 @@
 #include<cairo.h>
-#include<cairo-pdf.h>
-#include<cairo-ps.h>
 #include<cairo-xlib.h>
 #include<X11/Xlib.h>
+#include<X11/Xutil.h>
 
 #include<stdio.h>
 #include<stdlib.h>
@@ -48,7 +47,14 @@ void init_X(){
 			&(XG.wa) //atributes
 		);
 
-	XStoreName(XG.dpy, XG.win, "hello");
+
+	XClassHint *class_hint;
+	class_hint = XAllocClassHint();
+	class_hint->res_name  = "bar";
+	class_hint->res_class = "Bar";
+	XSetClassHint(XG.dpy, XG.win, class_hint);
+	XFree(class_hint);
+	/* XStoreName(XG.dpy, XG.win, "lubare"); */
 	XMapWindow(XG.dpy, XG.win);
 }
 
@@ -84,37 +90,6 @@ int main(int argc, char *argv[]) {
 	cairo_surface_t *cs;
 
 	init_X();
-
-	if(!(XG.dpy=XOpenDisplay(NULL))) {
-		fprintf(stderr, "ERROR: Could not open display\n");
-		exit(1);
-	}
-
-	XG.scr=DefaultScreen(XG.dpy);
-	XG.rootwin=RootWindow(XG.dpy, XG.scr);
-
-
-	XG.wa.override_redirect = 0;
-	XG.wa.background_pixmap = ParentRelative;
-	XG.wa.event_mask = ExposureMask | ButtonReleaseMask | ButtonPressMask | ButtonMotionMask | EnterWindowMask | LeaveWindowMask | KeyPressMask;
-
-	XG.win = XCreateWindow(
-			XG.dpy, //Display
-			XG.rootwin, //Parent
-			10, //X position
-			10, //Y position
-			500, //width
-			50, //height
-			0, //border width
-			DefaultDepth(XG.dpy, XG.scr), //depth
-			CopyFromParent, //class
-			DefaultVisual(XG.dpy, XG.scr), //visual
-			CWOverrideRedirect | CWBackPixmap | CWEventMask, //value mask
-			&(XG.wa) //atributes
-		);
-
-	XStoreName(XG.dpy, XG.win, "hello");
-	XMapWindow(XG.dpy, XG.win);
 
 	cs=cairo_xlib_surface_create(XG.dpy, XG.win, DefaultVisual(XG.dpy, 0), SIZEX, SIZEY);
 
