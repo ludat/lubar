@@ -12,8 +12,8 @@
 # 
 # Retrieved from: http://en.literateprograms.org/Hello_World_(C,_Cairo)?oldid=10388
 
-CFLAGS=-Wall -pedantic -g -I/usr/X11R6/include `pkg-config --cflags cairo`
-LDFLAGS=-Wall -g `pkg-config --libs cairo` -L/usr/X11R6/lib -lX11
+CFLAGS=-Wall -g -I/usr/X11R6/include `pkg-config --cflags cairo pangocairo`
+LDFLAGS=-Wall -g `pkg-config --libs cairo pangocairo` -L/usr/X11R6/lib -lX11
 
 all: lubare
 

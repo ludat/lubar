@@ -1,11 +1,12 @@
-#include<cairo.h>
-#include<cairo-xlib.h>
-#include<X11/Xlib.h>
-#include<X11/Xutil.h>
+#include <cairo.h>
+#include <cairo-xlib.h>
+#include <pango/pangocairo.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
 
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define SIZEX 500
 #define SIZEY 500
@@ -54,7 +55,7 @@ void init_X(){
 	class_hint->res_class = "Bar";
 	XSetClassHint(XG.dpy, XG.win, class_hint);
 	XFree(class_hint);
-	/* XStoreName(XG.dpy, XG.win, "lubare"); */
+	XStoreName(XG.dpy, XG.win, "lubare");
 	XMapWindow(XG.dpy, XG.win);
 }
 
@@ -70,16 +71,28 @@ void paint(cairo_surface_t *cs) {
 	printf("height: %d\n", cairo_image_surface_get_height (image));
 	cairo_paint(c);
 
-	/* cairo_rectangle(c, 0.0, 0.0, SIZEX, SIZEY); */
-	/* cairo_set_source_rgb(c, 0.0, 0.0, 0.5); */
-	/* cairo_fill(c); */
+	/* cairo_move_to(c, 16.0, 11.0); */
+	/* cairo_select_font_face (c, "Ubuntu", */
+	/* 	CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL); */
+	/* cairo_set_font_size (c, 16); */
+	/* cairo_set_source_rgb(c, 0.0, 0.0, 0.0); */
+	/* cairo_show_text(c, "Hellá World!   "); */
+	PangoLayout *layout;
+	PangoFontDescription *desc;
 
-	cairo_move_to(c, 16.0, 11.0);
-	cairo_select_font_face (c, "Terminus",
-		CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-	cairo_set_font_size (c, 16);
+	cairo_translate(c, 10, 20);
+	layout = pango_cairo_create_layout(c);
+	pango_layout_set_text(layout, "Hellá World!   ", -1);
+	desc = pango_font_description_from_string("Terminus bold 12");
+	pango_layout_set_font_description(layout, desc);
+	pango_font_description_free(desc);
+
 	cairo_set_source_rgb(c, 0.0, 0.0, 0.0);
-	cairo_show_text(c, "Hello World!");
+	pango_cairo_update_layout(c, layout);
+	pango_cairo_show_layout(c, layout);
+
+	g_object_unref(layout);
+
 	cairo_show_page(c);
 
 	cairo_destroy(c);
