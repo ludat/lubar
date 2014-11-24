@@ -4,6 +4,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,7 +18,15 @@ static Window win;
 static int scr;
 static XSetWindowAttributes wa;
 
-void init_X(){
+static char name[64] = "lololo";
+/* Geometry array x, y, width, height*/
+static int geometry[4] = {0, 0, 500, 15};
+static int border_size = 0;
+/* static char font[64]; */
+/* static char background_color; */
+/* static char foreground_color; */
+
+void init_X_win(){
 	if(!(dpy=XOpenDisplay(NULL))) {
 		fprintf(stderr, "ERROR: Could not open display\n");
 		exit(1);
@@ -36,13 +45,13 @@ void init_X(){
 	win = XCreateWindow(
 			dpy, /* Display */
 			rootwin, /* Parent */
-			0, /* X position */
-			0, /* Y position */
-			500, /* width */
-			13, /* height */
-			1, /* border width */
+			geometry[3], /* X position */
+			geometry[4], /* Y position */
+			geometry[0], /* width */
+			geometry[1], /* height */
+			border_size, /* border width */
 			DefaultDepth(dpy, scr), /* depth */
-			CopyFromParent, class
+			CopyFromParent, /* class */
 			DefaultVisual(dpy, scr), /* visual */
 			CWOverrideRedirect | CWBackPixmap | CWEventMask, /* value mask */
 			&(wa) /* atributes */
@@ -52,11 +61,11 @@ void init_X(){
 	XClassHint *class_hint;
 	class_hint = XAllocClassHint();
 	class_hint->res_name  = "lubar";
-	class_hint->res_class = "Bar";
+	class_hint->res_class = "Lubar";
 	XSetClassHint(dpy, win, class_hint);
 	XFree(class_hint);
 	XSetWindowBorder(dpy, win, 255);
-	XStoreName(dpy, win, "my_name");
+	XStoreName(dpy, win, name);
 
 	Atom type;
 	type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
@@ -116,7 +125,7 @@ void init_X(){
 			XInternAtom(dpy, "CARDINAL", False),
 			32,
 			PropModeReplace,
-			&strut_p,
+			(unsigned char *)&strut_p,
 			12
 			);
 
@@ -172,14 +181,70 @@ void paint(cairo_surface_t *cs) {
 	cairo_destroy(c);
 }
 
+int set_geometry(char *str, int *geom){
+	char tmp[16];
+	char delimiters[4] = { 'x', '+', '+', 0};
+	char *d = delimiters;
+	int i;
+	for(i = 0;i<4;i++){
+		int j = 0;
+		while(*str!=*d){
+			tmp[j] = *str;
+			str++; j++;
+		}
+		tmp[j] = 0;
+		geom[i] = atoi(tmp);
+		str++; d++;
+	}
+	fprintf(stderr, "width: %d\n", geometry[0]);
+	fprintf(stderr, "height: %d\n", geometry[1]);
+	fprintf(stderr, "x: %d\n", geometry[2]);
+	fprintf(stderr, "y: %d\n", geometry[3]);
+	return 0;
+}
+
 int main(int argc, char *argv[]) {
-	XEvent e;
+	char ch;
+	/* opterr = 0; */
+	while((ch = getopt(argc, argv, "hg:n:")) != -1){
+		switch (ch){
+		case 'h':
+			printf("Nobody can help you\n");
+			exit(EXIT_SUCCESS);
+			break;
+		case 'g':
+			if(set_geometry(optarg, geometry)){
+				fprintf(stderr, "Bad geometry\n");
+				exit(EXIT_SUCCESS);
+			}else{
+				fprintf(stderr, "Geometry accepted\n");
+			}
+			break;
+		case 'n':
+			if(strlen(optarg)>64){
+				fprintf(stderr, "Name too long\n");
+				exit(EXIT_SUCCESS);
+			}else{
+				strcpy(name, optarg);
+			}
+			break;
+		case '?':
+			exit(EXIT_SUCCESS);
+		}
+	}
+
+	init_X_win();
+
 	cairo_surface_t *cs;
+	cs=cairo_xlib_surface_create(
+			dpy,
+			win,
+			DefaultVisual(dpy, 0),
+			geometry[0],
+			geometry[1]
+		);
 
-	init_X();
-
-	cs=cairo_xlib_surface_create(dpy, win, DefaultVisual(dpy, 0), SIZEX, SIZEY);
-
+	XEvent e;
 	while(1) {
 		XNextEvent(dpy, &e);
 		if(e.type==Expose && e.xexpose.count<1) {
@@ -189,5 +254,5 @@ int main(int argc, char *argv[]) {
 
 	cairo_surface_destroy(cs);
 	XCloseDisplay(dpy);
-    return 0;
+	return 0;
 }
