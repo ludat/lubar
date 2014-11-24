@@ -11,52 +11,128 @@
 #define SIZEX 500
 #define SIZEY 500
 
-struct XGlobals {
-	Display *dpy;
-	Window rootwin;
-	Window win;
-	int scr;
-	XSetWindowAttributes wa;
-} XG;
+static Display *dpy;
+static Window rootwin;
+static Window win;
+static int scr;
+static XSetWindowAttributes wa;
 
 void init_X(){
-	if(!(XG.dpy=XOpenDisplay(NULL))) {
+	if(!(dpy=XOpenDisplay(NULL))) {
 		fprintf(stderr, "ERROR: Could not open display\n");
 		exit(1);
 	}
 
-	XG.scr=DefaultScreen(XG.dpy);
-	XG.rootwin=RootWindow(XG.dpy, XG.scr);
+	scr=DefaultScreen(dpy);
+	rootwin=RootWindow(dpy, scr);
 
 
-	XG.wa.override_redirect = 0;
-	XG.wa.background_pixmap = ParentRelative;
-	XG.wa.event_mask = ExposureMask | ButtonReleaseMask | ButtonPressMask | ButtonMotionMask | EnterWindowMask | LeaveWindowMask | KeyPressMask;
+	wa.override_redirect = 0;
+	wa.background_pixmap = ParentRelative;
+	wa.bit_gravity = SouthGravity;
+	wa.win_gravity = SouthGravity;
+	wa.event_mask = ExposureMask | ButtonReleaseMask | ButtonPressMask | ButtonMotionMask | EnterWindowMask | LeaveWindowMask | KeyPressMask;
 
-	XG.win = XCreateWindow(
-			XG.dpy, //Display
-			XG.rootwin, //Parent
-			10, //X position
-			10, //Y position
-			500, //width
-			50, //height
-			0, //border width
-			DefaultDepth(XG.dpy, XG.scr), //depth
-			CopyFromParent, //class
-			DefaultVisual(XG.dpy, XG.scr), //visual
-			CWOverrideRedirect | CWBackPixmap | CWEventMask, //value mask
-			&(XG.wa) //atributes
+	win = XCreateWindow(
+			dpy, /* Display */
+			rootwin, /* Parent */
+			0, /* X position */
+			0, /* Y position */
+			500, /* width */
+			13, /* height */
+			1, /* border width */
+			DefaultDepth(dpy, scr), /* depth */
+			CopyFromParent, class
+			DefaultVisual(dpy, scr), /* visual */
+			CWOverrideRedirect | CWBackPixmap | CWEventMask, /* value mask */
+			&(wa) /* atributes */
 		);
 
 
 	XClassHint *class_hint;
 	class_hint = XAllocClassHint();
-	class_hint->res_name  = "bar";
+	class_hint->res_name  = "lubar";
 	class_hint->res_class = "Bar";
-	XSetClassHint(XG.dpy, XG.win, class_hint);
+	XSetClassHint(dpy, win, class_hint);
 	XFree(class_hint);
-	XStoreName(XG.dpy, XG.win, "lubare");
-	XMapWindow(XG.dpy, XG.win);
+	XSetWindowBorder(dpy, win, 255);
+	XStoreName(dpy, win, "my_name");
+
+	Atom type;
+	type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DOCK", False);
+	XChangeProperty(
+			dpy,
+			win,
+			XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False),
+			XInternAtom(dpy, "ATOM", False),
+			32,
+			PropModeReplace,
+			(unsigned char *)&type,
+			1
+			);
+
+	type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
+	XChangeProperty(
+			dpy,
+			win,
+			XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False),
+			XInternAtom(dpy, "ATOM", False),
+			32,
+			PropModeAppend,
+			(unsigned char *)&type,
+			1
+			);
+
+	/* some window managers honor this properties*/
+	type = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
+	XChangeProperty(
+			dpy,
+			win,
+			XInternAtom(dpy, "_NET_WM_STATE", False),
+			XInternAtom(dpy, "ATOM", False),
+			32,
+			PropModeReplace,
+			(unsigned char *)&type,
+			1
+			);
+
+	type = XInternAtom(dpy, "_NET_WM_STATE_STICKY", False);
+	XChangeProperty(
+			dpy,
+			win,
+			XInternAtom(dpy, "_NET_WM_STATE", False),
+			XInternAtom(dpy, "ATOM", False),
+			32,
+			PropModeAppend,
+			(unsigned char *)&type,
+			1
+			);
+
+	unsigned char strut_p[12] = {0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0};
+	XChangeProperty(
+			dpy,
+			win,
+			XInternAtom(dpy, "_NET_WM_STRUT_PARTIAL", False),
+			XInternAtom(dpy, "CARDINAL", False),
+			32,
+			PropModeReplace,
+			&strut_p,
+			12
+			);
+
+	unsigned char strut[4] = { 0, 0, 15, 0 };
+	XChangeProperty(
+			dpy,
+			win,
+			XInternAtom(dpy, "_NET_WM_STRUT", False),
+			XInternAtom(dpy, "CARDINAL", False),
+			32,
+			PropModeReplace,
+			(unsigned char *)&strut,
+			4
+			);
+
+	XMapWindow(dpy, win);
 }
 
 void paint(cairo_surface_t *cs) {
@@ -67,8 +143,6 @@ void paint(cairo_surface_t *cs) {
 
 	image=cairo_image_surface_create_from_png("le.png");
 	cairo_set_source_surface(c, image, 0, 0);
-	printf("width: %d\n", cairo_image_surface_get_width (image));
-	printf("height: %d\n", cairo_image_surface_get_height (image));
 	cairo_paint(c);
 
 	/* cairo_move_to(c, 16.0, 11.0); */
@@ -80,7 +154,7 @@ void paint(cairo_surface_t *cs) {
 	PangoLayout *layout;
 	PangoFontDescription *desc;
 
-	cairo_translate(c, 10, 20);
+	cairo_translate(c, 0, 0);
 	layout = pango_cairo_create_layout(c);
 	pango_layout_set_text(layout, "Hellá World!   ", -1);
 	desc = pango_font_description_from_string("Terminus bold 12");
@@ -104,16 +178,16 @@ int main(int argc, char *argv[]) {
 
 	init_X();
 
-	cs=cairo_xlib_surface_create(XG.dpy, XG.win, DefaultVisual(XG.dpy, 0), SIZEX, SIZEY);
+	cs=cairo_xlib_surface_create(dpy, win, DefaultVisual(dpy, 0), SIZEX, SIZEY);
 
 	while(1) {
-		XNextEvent(XG.dpy, &e);
+		XNextEvent(dpy, &e);
 		if(e.type==Expose && e.xexpose.count<1) {
 			paint(cs);
 		} else if(e.type==ButtonPress) break;
 	}
 
 	cairo_surface_destroy(cs);
-	XCloseDisplay(XG.dpy);
+	XCloseDisplay(dpy);
     return 0;
 }
