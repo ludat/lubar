@@ -9,9 +9,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SIZEX 500
-#define SIZEY 500
-
 static Display *dpy;
 static Window rootwin;
 static Window win;
@@ -19,7 +16,7 @@ static int scr;
 static XSetWindowAttributes wa;
 
 static char name[64] = "lololo";
-/* Geometry array x, y, width, height*/
+/* Geometry array width, height, x, y*/
 static int geometry[4] = {0, 0, 500, 15};
 static int border_size = 0;
 /* static char font[64]; */
