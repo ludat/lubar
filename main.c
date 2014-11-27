@@ -17,8 +17,14 @@ static XSetWindowAttributes wa;
 
 static char name[64] = "lololo";
 /* Geometry array width, height, x, y*/
-static int geometry[4] = {0, 0, 500, 15};
+static struct {
+	int x;
+	int y;
+	unsigned int width;
+	unsigned int height;
+} geometry = {0, 0, 500, 15};
 static int border_size = 0;
+static unsigned long border_color = 0;
 /* static char font[64]; */
 /* static char background_color; */
 /* static char foreground_color; */
@@ -32,20 +38,17 @@ void init_X_win(){
 	scr=DefaultScreen(dpy);
 	rootwin=RootWindow(dpy, scr);
 
-
 	wa.override_redirect = 0;
 	wa.background_pixmap = ParentRelative;
-	wa.bit_gravity = SouthGravity;
-	wa.win_gravity = SouthGravity;
 	wa.event_mask = ExposureMask | ButtonReleaseMask | ButtonPressMask | ButtonMotionMask | EnterWindowMask | LeaveWindowMask | KeyPressMask;
 
 	win = XCreateWindow(
 			dpy, /* Display */
 			rootwin, /* Parent */
-			geometry[3], /* X position */
-			geometry[4], /* Y position */
-			geometry[0], /* width */
-			geometry[1], /* height */
+			geometry.x, /* X position */
+			geometry.y, /* Y position */
+			geometry.width, /* width */
+			geometry.height, /* height */
 			border_size, /* border width */
 			DefaultDepth(dpy, scr), /* depth */
 			CopyFromParent, /* class */
@@ -61,7 +64,7 @@ void init_X_win(){
 	class_hint->res_class = "Lubar";
 	XSetClassHint(dpy, win, class_hint);
 	XFree(class_hint);
-	XSetWindowBorder(dpy, win, 255);
+	XSetWindowBorder(dpy, win, border_color);
 	XStoreName(dpy, win, name);
 
 	Atom type;
@@ -77,19 +80,6 @@ void init_X_win(){
 			1
 			);
 
-	type = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_TOOLBAR", False);
-	XChangeProperty(
-			dpy,
-			win,
-			XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False),
-			XInternAtom(dpy, "ATOM", False),
-			32,
-			PropModeAppend,
-			(unsigned char *)&type,
-			1
-			);
-
-	/* some window managers honor this properties*/
 	type = XInternAtom(dpy, "_NET_WM_STATE_ABOVE", False);
 	XChangeProperty(
 			dpy,
@@ -114,7 +104,7 @@ void init_X_win(){
 			1
 			);
 
-	unsigned char strut_p[12] = {0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15, 0};
+	unsigned long strut_p[12] = {0, 0, 25, 0, 0, 0, 0, 0, 0, 1365, 0, 0};
 	XChangeProperty(
 			dpy,
 			win,
@@ -126,7 +116,7 @@ void init_X_win(){
 			12
 			);
 
-	unsigned char strut[4] = { 0, 0, 15, 0 };
+	unsigned long strut[4] = { 0, 0, 25, 0 };
 	XChangeProperty(
 			dpy,
 			win,
@@ -138,18 +128,23 @@ void init_X_win(){
 			4
 			);
 
+	XMoveWindow(dpy, win, geometry.x,geometry.y);
+
 	XMapWindow(dpy, win);
 }
 
 void paint(cairo_surface_t *cs) {
-	cairo_t *c;
-	cairo_surface_t *image;
+	cairo_t *cr;
 
-	c=cairo_create(cs);
+	cr=cairo_create(cs);
 
-	image=cairo_image_surface_create_from_png("le.png");
-	cairo_set_source_surface(c, image, 0, 0);
-	cairo_paint(c);
+	cairo_set_source_rgb(cr, 0.0, 0.0, 0.0);
+	cairo_rectangle (cr, 0, 0, geometry.width, geometry.height);
+	cairo_fill (cr);
+	/* cairo_surface_t *image; */
+	/* image=cairo_image_surface_create_from_png("le.png"); */
+	/* cairo_set_source_surface(c, image, 0, 0); */
+	/* cairo_paint(c); */
 
 	/* cairo_move_to(c, 16.0, 11.0); */
 	/* cairo_select_font_face (c, "Ubuntu", */
@@ -160,70 +155,45 @@ void paint(cairo_surface_t *cs) {
 	PangoLayout *layout;
 	PangoFontDescription *desc;
 
-	cairo_translate(c, 0, 0);
-	layout = pango_cairo_create_layout(c);
-	pango_layout_set_text(layout, "Hellá World!   ", -1);
-	desc = pango_font_description_from_string("Terminus bold 12");
+	cairo_translate(cr, 0, 0);
+	layout = pango_cairo_create_layout(cr);
+	pango_layout_set_text(layout, "jgqHellá World!   ", -1);
+	desc = pango_font_description_from_string("Terminus bold 8");
 	pango_layout_set_font_description(layout, desc);
 	pango_font_description_free(desc);
 
-	cairo_set_source_rgb(c, 0.0, 0.0, 0.0);
-	pango_cairo_update_layout(c, layout);
-	pango_cairo_show_layout(c, layout);
+	cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+	pango_cairo_update_layout(cr, layout);
+	pango_cairo_show_layout(cr, layout);
 
 	g_object_unref(layout);
 
-	cairo_show_page(c);
+	cairo_show_page(cr);
 
-	cairo_destroy(c);
-}
-
-int set_geometry(char *str, int *geom){
-	char tmp[16];
-	char delimiters[4] = { 'x', '+', '+', 0};
-	char *d = delimiters;
-	int i;
-	for(i = 0;i<4;i++){
-		int j = 0;
-		while(*str!=*d){
-			tmp[j] = *str;
-			str++; j++;
-		}
-		tmp[j] = 0;
-		geom[i] = atoi(tmp);
-		str++; d++;
-	}
-	fprintf(stderr, "width: %d\n", geometry[0]);
-	fprintf(stderr, "height: %d\n", geometry[1]);
-	fprintf(stderr, "x: %d\n", geometry[2]);
-	fprintf(stderr, "y: %d\n", geometry[3]);
-	return 0;
+	cairo_destroy(cr);
 }
 
 int main(int argc, char *argv[]) {
 	char ch;
 	/* opterr = 0; */
-	while((ch = getopt(argc, argv, "hg:n:")) != -1){
+	while((ch = getopt(argc, argv, "hg:n:b:c:")) != -1){
 		switch (ch){
 		case 'h':
 			printf("Nobody can help you\n");
 			exit(EXIT_SUCCESS);
 			break;
 		case 'g':
-			if(set_geometry(optarg, geometry)){
-				fprintf(stderr, "Bad geometry\n");
-				exit(EXIT_SUCCESS);
-			}else{
-				fprintf(stderr, "Geometry accepted\n");
-			}
+			XParseGeometry(optarg, &(geometry.x),
+					&(geometry.y), &(geometry.width), &(geometry.height));
+			break;
+		case 'b':
+			border_size = atoi(optarg);
+			break;
+		case 'c':
+			border_color = strtoul(optarg, NULL, 16);
 			break;
 		case 'n':
-			if(strlen(optarg)>64){
-				fprintf(stderr, "Name too long\n");
-				exit(EXIT_SUCCESS);
-			}else{
-				strcpy(name, optarg);
-			}
+			strncpy(name, optarg, 63);
 			break;
 		case '?':
 			exit(EXIT_SUCCESS);
@@ -237,8 +207,8 @@ int main(int argc, char *argv[]) {
 			dpy,
 			win,
 			DefaultVisual(dpy, 0),
-			geometry[0],
-			geometry[1]
+			geometry.width,
+			geometry.height
 		);
 
 	XEvent e;
